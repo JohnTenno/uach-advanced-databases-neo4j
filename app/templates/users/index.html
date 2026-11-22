@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block title %}Usuarios · Blog Neo4j{% endblock %}
+{% block content %}
+{{ ui.page_head("(:User)", "Usuarios", url_for('users.new'), "Nuevo usuario") }}
+<form class="search-bar" method="get" role="search" action="{{ url_for('users.index') }}">
+  <label class="sr-only" for="user-search">Buscar usuarios</label>
+  <input id="user-search" type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre o correo…" maxlength="80">
+  <button class="btn" type="submit">Buscar</button>
+  {% if q %}<a class="btn btn-ghost" href="{{ url_for('users.index') }}">Limpiar</a>{% endif %}
+</form>
+<p class="muted search-count">{{ total }} usuario{{ '' if total == 1 else 's' }}{% if q %} para «{{ q }}»{% endif %}</p>
+<section class="panel admin-panel frame-users">
+  {% if not users %}<p class="muted">No hay usuarios que coincidan con «{{ q }}».</p>{% endif %}
+  <div class="table-wrap table-flush"><table class="users-table">
+    <thead><tr><th>Usuario</th><th>Rol</th><th>Alta</th><th class="n">Artículos</th><th class="n">Comentarios</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td><div class="user-cell"><a href="{{ url_for('profile.show', user_id=u.user_id) }}" tabindex="-1" aria-hidden="true">{{ ui.avatar(u.name, "sm", u.user_id, u.avatar) }}</a><div><a class="post__name" href="{{ url_for('profile.show', user_id=u.user_id) }}"><strong>{{ u.name }}</strong></a>{% if u.user_id == current_user.id %} <span class="muted">(tú)</span>{% endif %}<br><span class="muted">{{ u.email }}</span></div></div></td>
+        <td><span class="badge {{ 'badge-published' if u.role == 'ADMIN' }}">{{ 'Administrador' if u.role == 'ADMIN' else 'Autor' }}</span></td>
+        <td class="num">{{ u.created_at | date }}</td>
+        <td class="n" data-label="Artículos">{{ u.article_count }}</td><td class="n" data-label="Comentarios">{{ u.comment_count }}</td>
+        <td class="row-actions">
+          {% if u.user_id == current_user.id %}<a class="btn btn-sm btn-ghost" href="{{ url_for('profile.edit') }}">Editar perfil</a>
+          {% else %}<a class="btn btn-sm btn-ghost" href="{{ url_for('users.edit', user_id=u.user_id) }}">Cambiar rol</a>{% endif %}
+          {% if u.user_id != current_user.id %}
+          {{ ui.delete_button(url_for('users.remove', user_id=u.user_id), "Eliminar usuario",
+               "Vas a eliminar a " ~ u.name ~ " (" ~ u.email ~ "). También se borran sus " ~ u.article_count
+               ~ (" artículo" if u.article_count == 1 else " artículos") ~ " con los comentarios que tengan. Sus " ~ u.foreign_comment_count
+               ~ (" comentario" if u.foreign_comment_count == 1 else " comentarios") ~ " en artículos de otros se quedan, pero como de cuenta eliminada.") }}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% include "partials/pager.html" %}
+{% endblock %}

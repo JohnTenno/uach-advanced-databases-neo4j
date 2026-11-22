@@ -1,0 +1,10 @@
+{# A short list of articles for side panels; expects `items` (article_id, title, image) and `meta(item)`. #}
+<ul class="mini-posts">
+  {% for m in items %}
+  <li><a href="{{ url_for('articles.detail', article_id=m.article_id) }}">
+    {% if m.image %}<img src="{{ url_for('articles.image', article_id=m.article_id) }}" alt="" loading="lazy">
+    {% else %}<span class="mini-posts__ph" aria-hidden="true"></span>{% endif %}
+    <span><strong>{{ m.title }}</strong><span class="muted">{{ meta(m) }}</span></span>
+  </a></li>
+  {% endfor %}
+</ul>

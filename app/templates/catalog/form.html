@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block title %}{{ ('Editar ' ~ item.name) if item else ('Nueva ' ~ service.noun) }} · Blog Neo4j{% endblock %}
+{% block content %}
+<section class="panel form-panel frame-sm">
+  <p class="eyebrow">{{ title }}</p>
+  <h1 class="title">{{ 'Editar ' ~ item.name if item else 'Nueva ' ~ service.noun }}</h1>
+  <form method="post" class="form" action="{{ url_for(section ~ '.update', item_id=item.id) if item else url_for(section ~ '.create') }}">{{ csrf_field() }}
+    <label>Nombre<input name="name" value="{{ field('name', item.name if item else '') }}" maxlength="60" required autofocus></label>
+    <label>URL<span class="hint">Identificador corto (slug): solo letras sin acento, números, - y _. Ejemplo: base-de-datos</span>
+      <input name="url" value="{{ field('url', item.url if item else '') }}" maxlength="80" pattern="[A-Za-z0-9_\-]+" required></label>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">{{ 'Guardar cambios' if item else 'Crear ' ~ service.noun }}</button>
+      <a class="btn btn-ghost" href="{{ url_for(section ~ '.index') }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

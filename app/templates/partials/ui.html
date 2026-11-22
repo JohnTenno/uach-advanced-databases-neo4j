@@ -1,0 +1,27 @@
+{# Shared building blocks. Import with: {% import "partials/ui.html" as ui %} #}
+
+{% macro avatar(name, size="", user_id=None, photo=None) -%}
+  {%- if photo and user_id -%}
+  <img class="avatar avatar--photo {{ 'avatar--' ~ size if size }}" src="{{ url_for('profile.photo', user_id=user_id, kind='avatar', v=photo[:8]) }}" alt="" aria-hidden="true">
+  {%- else -%}
+  <span class="avatar {{ 'avatar--' ~ size if size }}" aria-hidden="true">{{ (name or "?")[:1] | upper }}</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{# With JavaScript the shared dialog asks first and adds confirm=1; without it the
+   server answers with a confirmation page built from the same title and description. #}
+{% macro delete_button(action, title, description, label="Eliminar", small=true, async_action=None) -%}
+  <form method="post" action="{{ action }}" class="inline" data-confirm-title="{{ title }}" data-confirm-text="{{ description }}"
+        {% if async_action %}data-async="{{ async_action }}"{% endif %}>{{ csrf_field() }}
+    <input type="hidden" name="confirm_title" value="{{ title }}">
+    <input type="hidden" name="confirm_text" value="{{ description }}">
+    <button class="btn btn-danger {{ 'btn-sm' if small }}" type="submit">{{ label }}</button>
+  </form>
+{%- endmacro %}
+
+{% macro page_head(eyebrow, title, action_url=None, action_label=None) -%}
+  <div class="page-head">
+    <div><p class="eyebrow">{{ eyebrow }}</p><h1 class="title">{{ title }}</h1></div>
+    {% if action_url %}<a class="btn btn-primary" href="{{ action_url }}">{{ action_label }}</a>{% endif %}
+  </div>
+{%- endmacro %}

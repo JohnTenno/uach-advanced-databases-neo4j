@@ -1,0 +1,9 @@
+<script>
+  // Reveal animations hide their targets from the very first paint, so content never flashes
+  // visible and then jumps into the animation. app.js sets __revealReady; if it never loads,
+  // everything is shown after 3 s.
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.documentElement.classList.add("js-reveal");
+    setTimeout(() => { if (!window.__revealReady) document.documentElement.classList.remove("js-reveal"); }, 3000);
+  }
+  </script>

@@ -1,0 +1,91 @@
+{% extends "layout.html" %}
+{% block title %}Inicio · Blog Neo4j{% endblock %}
+{% block content %}
+<div class="home">
+  <section class="feed" aria-labelledby="feed-title">
+    {% if not (tag or category or q) %}
+    <div class="compose panel">
+      {{ ui.avatar(current_user.name, '', current_user.id, current_user.avatar) }}
+      <a class="compose-prompt" href="{{ url_for('articles.new') }}">¿Sobre qué quieres escribir, {{ current_user.name.split(' ')[0] }}?</a>
+      <a class="btn btn-primary" href="{{ url_for('articles.new') }}">Nuevo artículo</a>
+    </div>
+    {% endif %}
+    {# Filters combine: each link keeps the others and drops the page. #}
+    {% macro with_filter(key, value) %}{% set args = {} %}{% for k, v in [('tag', tag), ('category', category), ('q', q), ('sort', '' if sort == 'recent' else sort)] %}{% set val = value if k == key else v %}{% if val %}{% set _ = args.update({k: val}) %}{% endif %}{% endfor %}{{ url_for('dashboard.index', **args) }}{% endmacro %}
+    <nav class="filter-row" aria-label="Filtrar por categoría">
+      <a href="{{ with_filter('category', '') }}" {% if not category %}aria-current="true"{% endif %}>Todas</a>
+      {% for c in categories %}<a href="{{ with_filter('category', c.name) }}" {% if category == c.name %}aria-current="true"{% endif %}>{{ c.name }} <span>{{ c.article_count }}</span></a>{% endfor %}
+    </nav>
+    {% if tags %}
+    <details class="filters-mobile" {% if tag %}open{% endif %}>
+      <summary>Etiquetas{% if tag %} (1){% endif %}</summary>
+      <ul class="tag-cloud">
+        {% for t in tags %}<li><a href="{{ with_filter('tag', '' if tag == t.name else t.name) }}" {% if tag == t.name %}aria-current="true"{% endif %}>#{{ t.name }} <span>{{ t.article_count }}</span></a></li>{% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+    {% if tag or category or q %}
+    <div class="filter-bar panel">
+      <div>
+        <h1 class="section-title" id="feed-title">{{ total }} artículo{{ '' if total == 1 else 's' }}</h1>
+        <ul class="active-filters" aria-label="Filtros activos">
+          {% if category %}<li><a href="{{ with_filter('category', '') }}" aria-label="Quitar categoría {{ category }}">Categoría: {{ category }} <span aria-hidden="true">×</span></a></li>{% endif %}
+          {% if tag %}<li><a href="{{ with_filter('tag', '') }}" aria-label="Quitar etiqueta {{ tag }}">#{{ tag }} <span aria-hidden="true">×</span></a></li>{% endif %}
+          {% if q %}<li><a href="{{ with_filter('q', '') }}" aria-label="Quitar búsqueda {{ q }}">«{{ q }}» <span aria-hidden="true">×</span></a></li>{% endif %}
+        </ul>
+      </div>
+      <a class="btn btn-ghost" href="{{ url_for('dashboard.index', sort=None if sort == 'recent' else sort) }}">Quitar filtros</a>
+    </div>
+    {% if people %}
+    <section class="panel">
+      <h2 class="section-title">Personas</h2>
+      <ul class="people people--row">
+        {% for p in people %}
+        <li><a href="{{ url_for('profile.show', user_id=p.user_id) }}">{{ ui.avatar(p.name, "", p.user_id, p.avatar) }}
+          <span><strong>{{ p.name }}</strong><span class="muted">{{ p.article_count }} artículo{{ '' if p.article_count == 1 else 's' }}</span></span></a></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+    {% endif %}
+    <div class="feed-head">
+      {% if not (tag or category or q) %}<h1 class="section-title" id="feed-title">{{ 'Lo más popular' if sort == 'popular' else 'Lo último publicado' }}</h1>{% else %}<span></span>{% endif %}
+      <nav class="sort-tabs" aria-label="Ordenar">
+        <a href="{{ with_filter('sort', '') }}" {% if sort == 'recent' %}aria-current="true"{% endif %}>Recientes</a>
+        <a href="{{ with_filter('sort', 'popular') }}" {% if sort == 'popular' %}aria-current="true"{% endif %}>Populares</a>
+      </nav>
+    </div>
+    {% for a in feed %}{% include "articles/_card.html" %}
+    {% else %}<div class="panel empty">{{ 'Ningún artículo coincide.' if tag or category or q else 'Todavía no hay artículos publicados.' }}</div>{% endfor %}
+    {% include "partials/pager.html" %}
+  </section>
+
+  <aside class="home-side">
+    <a class="panel me-card" href="{{ url_for('profile.show') }}">
+      {{ ui.avatar(current_user.name, "lg", current_user.id, current_user.avatar) }}
+      <span><strong>{{ current_user.name }}</strong><span class="muted">Ver mi perfil →</span></span>
+      <span class="me-card__stats">
+        <span><b>{{ published }}</b> {{ "publicación" if published == 1 else "publicaciones" }}</span>
+        <span><b>{{ drafts }}</b> {{ "borrador" if drafts == 1 else "borradores" }}</span>
+        <span><b>{{ stats.likes }}</b> me gusta</span>
+      </span>
+    </a>
+    {% if tags %}
+    <section class="panel">
+      <h2 class="section-title">Etiquetas populares</h2>
+      <ul class="tag-cloud">
+        {% for t in tags %}<li><a href="{{ with_filter('tag', '' if tag == t.name else t.name) }}" {% if tag == t.name %}aria-current="true"{% endif %}>#{{ t.name }} <span>{{ t.article_count }}</span></a></li>{% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+    <section class="panel">
+      <h2 class="section-title">El blog en el grafo</h2>
+      <dl class="mini-stats">
+        {% for label, key in [('Artículos publicados','published'),('Comentarios','comments'),('Me gusta','likes'),('Autores','users'),('Etiquetas','tags'),('Categorías','categories'),('Relaciones','relationships')] %}
+          <div><dt>{{ label }}</dt><dd class="num">{{ totals[key] }}</dd></div>
+        {% endfor %}
+      </dl>
+    </section>
+  </aside>
+</div>
+{% endblock %}

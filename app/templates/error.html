@@ -1,0 +1,9 @@
+{% extends "layout.html" if current_user else "auth/base.html" %}
+{% block title %}Aviso{% if current_user %} · Blog Neo4j{% endif %}{% endblock %}
+{% block content %}
+<section class="{{ 'panel' if current_user }}">
+  <p class="eyebrow">Aviso</p>
+  <h1 class="title">{{ message }}</h1>
+  <div class="actions"><a class="btn" href="{{ url_for('dashboard.index') }}">Volver al inicio</a></div>
+</section>
+{% endblock %}

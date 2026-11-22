@@ -1,0 +1,16 @@
+<div class="table-wrap"><table>
+  <thead><tr><th>Título</th><th>Autor</th><th>Estado</th><th>Fecha</th><th class="n">Comentarios</th></tr></thead>
+  <tbody>
+  {% for a in articles %}
+    <tr>
+      <td><a href="{{ url_for('articles.detail', article_id=a.article_id) }}">{{ a.title }}</a></td>
+      <td>{{ a.author_name }}</td>
+      <td><span class="badge badge-{{ a.status | lower }}">{{ statuses[a.status] }}</span></td>
+      <td class="num">{{ a.post_date | date }}</td>
+      <td class="n">{{ a.comment_count }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="5">Todavía no hay artículos.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>

@@ -1,0 +1,22 @@
+<a href="{{ url_for('dashboard.index') }}" {% if section == 'home' %}aria-current="page"{% endif %}>
+  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 8l7-6 7 6v8H11v-5H7v5H2z"/></svg>
+  Inicio
+</a>
+<a href="{{ url_for('profile.show') }}" {% if section == 'profile' %}aria-current="page"{% endif %}>
+  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 3h14v12H2zM5 7h3M5 10h3M11 7.5a1.5 1.5 0 100-.01M9.5 12c0-1.2.7-2 1.5-2s1.5.8 1.5 2"/></svg>
+  Mi perfil
+</a>
+{% if current_user and current_user.is_admin %}
+<a href="{{ url_for('tags.index') }}" {% if section == 'tags' %}aria-current="page"{% endif %}>
+  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 2h7l7 7-7 7-7-7zM6 6h.01"/></svg>
+  Etiquetas
+</a>
+<a href="{{ url_for('categories.index') }}" {% if section == 'categories' %}aria-current="page"{% endif %}>
+  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h5l2 2h7v9H2z"/></svg>
+  Categorías
+</a>
+<a href="{{ url_for('users.index') }}" {% if section == 'users' %}aria-current="page"{% endif %}>
+  <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 9a3 3 0 100-6 3 3 0 000 6zM3 16c0-3 2.7-5 6-5s6 2 6 5"/></svg>
+  Usuarios
+</a>
+{% endif %}

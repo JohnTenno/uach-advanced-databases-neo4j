@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block title %}{{ ('Editar ' ~ user.name) if user else 'Nuevo usuario' }} · Blog Neo4j{% endblock %}
+{% block content %}
+<section class="panel form-panel {{ 'frame-role' if user else 'frame-sm' }}">
+  <p class="eyebrow">{{ 'Usuario #' ~ user.user_id if user else 'Usuarios' }}</p>
+  <h1 class="title">{{ 'Cambiar rol de ' ~ user.name if user else 'Nuevo usuario' }}</h1>
+  <form method="post" class="form" action="{{ url_for('users.update', user_id=user.user_id) if user else url_for('users.create') }}">{{ csrf_field() }}
+    {% if user %}
+    <div class="user-cell">{{ ui.avatar(user.name, "lg", user.user_id, user.avatar) }}<div><strong>{{ user.name }}</strong><br><span class="muted">{{ user.email }}</span></div></div>
+    <p class="muted">Como administrador solo cambias el rol. Nombre, correo, contraseña y fotos los edita cada quien desde su perfil.</p>
+    {% else %}
+    <label>Nombre<input name="name" value="{{ field('name') }}" maxlength="80" required autofocus></label>
+    <label>Correo<input type="email" name="email" value="{{ field('email') }}" required></label>
+    <label>Contraseña<input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+    {% endif %}
+    <fieldset class="radio-group">
+      <legend>Rol</legend>
+      {% for value, label, help in [('AUTHOR', 'Autor', 'Escribe artículos y comenta. Solo edita lo suyo.'), ('ADMIN', 'Administrador', 'Además maneja usuarios, etiquetas y categorías.')] %}
+      <label class="radio"><input type="radio" name="role" value="{{ value }}" {% if field('role', user.role if user else 'AUTHOR') == value %}checked{% endif %}>
+        <span><strong>{{ label }}</strong><span class="muted">{{ help }}</span></span></label>
+      {% endfor %}
+    </fieldset>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">{{ 'Guardar rol' if user else 'Crear usuario' }}</button>
+      <a class="btn btn-ghost" href="{{ url_for('users.index') }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

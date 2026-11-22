@@ -1,0 +1,41 @@
+<dialog class="modal" id="confirm-dialog" aria-labelledby="confirm-title">
+  <div class="modal__head">
+    <span class="modal__title" id="confirm-title">Eliminar</span>
+    <button type="button" class="modal__close" data-close aria-label="Cerrar">×</button>
+  </div>
+  <div class="modal__body">
+    <p class="modal__text" id="confirm-text"></p>
+    <p class="muted">Se quita de la app, pero los datos se conservan en la base (borrado lógico).</p>
+    <div class="modal__foot">
+      <button type="button" class="btn btn-ghost" data-close>Cancelar</button>
+      <button type="button" class="btn btn-danger-solid" id="confirm-ok">Sí, eliminar</button>
+    </div>
+  </div>
+</dialog>
+<script>
+  (() => {
+    const dialog = document.getElementById("confirm-dialog");
+    let pending = null;
+    document.addEventListener("submit", (event) => {
+      const form = event.target;
+      if (!form.dataset.confirmTitle || form.dataset.confirmed) return;
+      event.preventDefault();
+      pending = form;
+      document.getElementById("confirm-title").textContent = form.dataset.confirmTitle;
+      document.getElementById("confirm-text").textContent = form.dataset.confirmText;
+      dialog.showModal();
+      document.getElementById("confirm-ok").focus();
+    });
+    document.getElementById("confirm-ok").addEventListener("click", () => {
+      dialog.close();
+      pending.dataset.confirmed = "1";
+      const flag = document.createElement("input");
+      Object.assign(flag, { type: "hidden", name: "confirm", value: "1" });
+      pending.appendChild(flag);
+      pending.requestSubmit();
+    });
+    dialog.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => dialog.close()));
+    // Clicking the backdrop closes it too.
+    dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+  })();
+</script>

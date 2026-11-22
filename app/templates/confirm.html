@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block title %}Confirmar · Blog Neo4j{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <p class="eyebrow">Confirmar</p>
+  <h1 class="title">{{ title }}</h1>
+  <p class="modal__text">{{ text }}</p>
+  <p class="muted">Se quita de la app, pero los datos se conservan en la base (borrado lógico).</p>
+  <form method="post" action="{{ action }}" class="actions">{{ csrf_field() }}
+    <input type="hidden" name="confirm" value="1">
+    <button class="btn btn-danger-solid" type="submit">Sí, eliminar</button>
+    <a class="btn btn-ghost" href="{{ back }}">Cancelar</a>
+  </form>
+</section>
+{% endblock %}

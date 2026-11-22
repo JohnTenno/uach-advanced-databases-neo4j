@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+{% block title %}{{ article.title }} · Blog Neo4j{% endblock %}
+{% set can_edit = current_user.can_edit(article.author_id) %}
+{% block content %}
+{% set a = article %}
+<div class="home">
+<div class="feed">
+<article class="panel reader" id="articulo-{{ article.article_id }}">
+  <header class="post__head post__head--flush">
+    {{ ui.avatar(article.author_name, "lg", article.author_id, article.author_avatar) }}
+    <div class="post__who">
+      <a class="post__name" href="{{ url_for('profile.show', user_id=article.author_id) }}">{{ article.author_name }}</a>
+      <span class="post__date">{{ article.post_date | date }}</span>
+    </div>
+    <span class="badge badge-{{ article.status | lower }}">{{ statuses[article.status] }}</span>
+  </header>
+  <h1 class="reader-title">{{ article.title }}</h1>
+  {% if article.tags or article.categories %}
+  <ul class="tags-line tags-line--flush" aria-label="Categorías y etiquetas">
+    {% for c in article.categories %}<li><a class="tag-cat" href="{{ url_for('dashboard.index', category=c) }}">{{ c }}</a></li>{% endfor %}
+    {% for t in article.tags %}<li><a class="tag" href="{{ url_for('dashboard.index', tag=t) }}">#{{ t }}</a></li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% if article.image %}
+  <figure class="reader-media" data-reveal="media"><img src="{{ url_for('articles.image', article_id=article.article_id) }}" alt="Imagen de portada de {{ article.title }}"></figure>
+  {% endif %}
+  <div class="article-body">{{ article.body_text }}</div>
+  <div class="reader-actions">{% include "partials/like_button.html" %}
+    <a class="action" href="#comentarios"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 4h14v9H8l-4 3v-3H3z"/></svg><span data-comment-count>{{ comments | length }}</span> <span class="sr-only">{{ "comentario" if comments | length == 1 else "comentarios" }}</span></a>
+  </div>
+  {% if current_user.can_delete(article.author_id) %}
+  <div class="actions">
+    {% if can_edit %}
+    <a class="btn" href="{{ url_for('articles.edit', article_id=article.article_id) }}">Editar</a>
+    <form method="post" class="inline" action="{{ url_for('articles.change_status', article_id=article.article_id, intent='draft' if article.status == 'PUBLISHED' else 'publish') }}">{{ csrf_field() }}
+      <button class="btn {{ 'btn-ghost' if article.status == 'PUBLISHED' else 'btn-primary' }}" type="submit">
+        {{ 'Pasar a borrador' if article.status == 'PUBLISHED' else 'Publicar' }}</button>
+    </form>
+    {% endif %}
+    {{ ui.delete_button(url_for('articles.remove', article_id=article.article_id),
+         "Eliminar artículo",
+         "Vas a eliminar «" ~ article.title ~ "» de " ~ article.author_name ~ (", sin comentarios" if article.comment_count == 0 else ", junto con su comentario" if article.comment_count == 1 else ", junto con sus " ~ article.comment_count ~ " comentarios") ~ ". Deja de mostrarse en el blog; sus relaciones con etiquetas y categorías se conservan en la base como historial.",
+         "Eliminar artículo", small=false) }}
+  </div>
+  {% endif %}
+</article>
+
+<section class="panel" id="comentarios">
+  <p class="eyebrow">(:User)-[:POSTED]->(:Comment)-[:ON]->(:Article)</p>
+  <h2 class="section-title">Comentarios (<span data-comment-count>{{ comments | length }}</span>)</h2>
+  <ul class="comments">
+  {% for c in comments %}
+    {% include "comments/_item.html" %}
+  {% else %}
+    <li class="muted comments-empty">Nadie ha comentado todavía.</li>
+  {% endfor %}
+  </ul>
+  {% if article.status == 'PUBLISHED' %}
+  <form method="post" class="compose-comment" data-async="comment-create" action="{{ url_for('comments.create', article_id=article.article_id) }}">{{ csrf_field() }}
+    {{ ui.avatar(current_user.name, "sm", current_user.id, current_user.avatar) }}
+    <label class="sr-only" for="comment-text">Comentario</label>
+    <textarea id="comment-text" name="body_text" rows="2" maxlength="2000" placeholder="Escribe un comentario…" required>{{ field('body_text') }}</textarea>
+    <button class="btn btn-primary" type="submit">Comentar</button>
+    <details class="comment-extra">
+      <summary>Cambiar nombre o agregar URL (opcional)</summary>
+      <div class="grid-2 grid-tight">
+        <label>Nombre a mostrar<input name="name" value="{{ field('name', current_user.name) }}" maxlength="80"></label>
+        <label>URL<input type="url" name="url" value="{{ field('url') }}" placeholder="https://" maxlength="200"></label>
+      </div>
+    </details>
+  </form>
+  {% else %}
+  <p class="muted">Los comentarios se abren cuando el artículo se publica.</p>
+  {% endif %}
+</section>
+</div>
+<aside class="home-side">
+  {% if related %}
+  <section class="panel">
+    <h2 class="section-title">Artículos parecidos</h2>
+    <p class="eyebrow">Comparten etiquetas en el grafo</p>
+    {% macro meta(m) %}{{ m.author_name }} · {{ m.shared }} etiqueta{{ '' if m.shared == 1 else 's' }} en común{% endmacro %}
+    {% set items = related %}{% include "partials/mini_posts.html" %}
+  </section>
+  {% endif %}
+  {% if more %}
+  <section class="panel">
+    <h2 class="section-title">Más de {{ article.author_name }}</h2>
+    {% macro meta(m) %}{{ m.like_count }} me gusta{% endmacro %}
+    {% set items = more %}{% include "partials/mini_posts.html" %}
+    <a class="side-more" href="{{ url_for('profile.show', user_id=article.author_id) }}">Ver su perfil →</a>
+  </section>
+  {% endif %}
+</aside>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block title %}{{ 'Editar artículo' if article else 'Nuevo artículo' }} · Blog Neo4j{% endblock %}
+{% block content %}
+<section class="panel form-panel frame-article">
+  <p class="eyebrow">{{ 'Editar artículo' if article else 'Nuevo artículo' }}</p>
+  <h1 class="title">{{ article.title if article else 'Escribe un artículo' }}</h1>
+  <form method="post" class="form" enctype="multipart/form-data"
+        action="{{ url_for('articles.update', article_id=article.article_id) if article else url_for('articles.create') }}">{{ csrf_field() }}
+    <label>Título<input name="title" value="{{ field('title', article.title if article else '') }}" maxlength="150" required autofocus></label>
+    <label>Texto<textarea name="body_text" rows="14" maxlength="20000" required>{{ field('body_text', article.body_text if article else '') }}</textarea></label>
+    <div class="image-field">
+      <label>Imagen de portada <span class="hint">Opcional. JPG, PNG, WebP o GIF, máximo 5 MB.</span>
+        <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+      {% if article and article.image %}
+        <div class="image-current">
+          <img src="{{ url_for('articles.image', article_id=article.article_id) }}" alt="Imagen actual">
+          <label class="check-chip"><input type="checkbox" name="remove_image" value="1" {% if field('remove_image') == '1' %}checked{% endif %}><span>Quitar imagen</span></label>
+        </div>
+      {% endif %}
+    </div>
+    {% for name, label, empty in [('category_ids', 'Categorías', 'categories'), ('tag_ids', 'Etiquetas', 'tags')] %}
+    {% set chosen = field_list(name, selected[empty]) %}
+    <fieldset class="check-group">
+      <legend>{{ label }}</legend>
+      {% for item in options[empty] %}
+        <label class="check-chip"><input type="checkbox" name="{{ name }}" value="{{ item.id }}" {% if item.id | string in chosen %}checked{% endif %}><span>{{ item.name }}</span></label>
+      {% else %}<span class="muted">Todavía no hay {{ label | lower }}.</span>{% endfor %}
+    </fieldset>
+    {% endfor %}
+    <div class="actions">
+      {% if not article %}
+        <button class="btn btn-primary" type="submit" name="intent" value="publish">Publicar</button>
+        <button class="btn" type="submit" name="intent" value="draft">Guardar borrador</button>
+      {% elif article.status == 'PUBLISHED' %}
+        <button class="btn btn-primary" type="submit" name="intent" value="save">Guardar cambios</button>
+        <button class="btn" type="submit" name="intent" value="draft">Pasar a borrador</button>
+      {% else %}
+        <button class="btn btn-primary" type="submit" name="intent" value="publish">Guardar y publicar</button>
+        <button class="btn" type="submit" name="intent" value="save">Guardar borrador</button>
+      {% endif %}
+      <a class="btn btn-ghost" href="{{ url_for('articles.detail', article_id=article.article_id) if article else url_for('profile.show') }}">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,12 @@
+{# Heart toggle for article `a`; drafts cannot be liked. #}
+{% if a.status == 'PUBLISHED' %}
+<form method="post" action="{{ url_for('articles.like', article_id=a.article_id) }}" class="inline" data-async="like">{{ csrf_field() }}
+  {# The desired state, not a toggle: repeated or concurrent clicks cannot stack likes. #}
+  <input type="hidden" name="want" value="{{ '0' if a.liked else '1' }}">
+  <button type="submit" class="action {{ 'action--on' if a.liked }}" aria-pressed="{{ 'true' if a.liked else 'false' }}"
+          aria-label="{{ 'Quitar me gusta' if a.liked else 'Me gusta' }} ({{ a.like_count }})">
+    <svg viewBox="0 0 20 20" aria-hidden="true" fill="{{ 'currentColor' if a.liked else 'none' }}" stroke="currentColor" stroke-width="1.7"><path d="M10 17s-6.5-4.1-6.5-8.6A3.6 3.6 0 0 1 10 6a3.6 3.6 0 0 1 6.5 2.4C16.5 12.9 10 17 10 17z"/></svg>
+    <span data-like-count>{{ a.like_count }}</span>
+  </button>
+</form>
+{% endif %}

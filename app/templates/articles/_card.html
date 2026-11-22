@@ -1,0 +1,33 @@
+{# One article as a post card; expects `a` in scope. #}
+<article class="post panel" id="articulo-{{ a.article_id }}">
+  <header class="post__head">
+    <a href="{{ url_for('profile.show', user_id=a.author_id) }}" tabindex="-1" aria-hidden="true">{{ ui.avatar(a.author_name, '', a.author_id, a.author_avatar) }}</a>
+    <div class="post__who">
+      <a class="post__name" href="{{ url_for('profile.show', user_id=a.author_id) }}">{{ a.author_name }}</a>
+      <span class="post__date">{{ a.post_date | date }}{% if a.status == 'DRAFT' %} · <span class="badge badge-draft">Borrador</span>{% endif %}</span>
+    </div>
+  </header>
+  {% if a.image %}
+  <a class="post__media" href="{{ url_for('articles.detail', article_id=a.article_id) }}" tabindex="-1" aria-hidden="true">
+    <img src="{{ url_for('articles.image', article_id=a.article_id) }}" alt="" loading="lazy">
+  </a>
+  {% endif %}
+  <a class="post__link" href="{{ url_for('articles.detail', article_id=a.article_id) }}">
+    <h2 class="post__title">{{ a.title }}</h2>
+    <p class="post__text">{{ a.excerpt }}</p>
+  </a>
+  {% if a.tags or a.categories %}
+  <ul class="tags-line" aria-label="Categorías y etiquetas">
+    {% for c in a.categories %}<li><a class="tag-cat" href="{{ with_filter('category', c) if with_filter is defined else url_for('dashboard.index', category=c) }}">{{ c }}</a></li>{% endfor %}
+    {% for t in a.tags %}<li><a class="tag" href="{{ with_filter('tag', t) if with_filter is defined else url_for('dashboard.index', tag=t) }}">#{{ t }}</a></li>{% endfor %}
+  </ul>
+  {% endif %}
+  <footer class="post__actions">
+    {% include "partials/like_button.html" %}
+    <a class="action" href="{{ url_for('articles.detail', article_id=a.article_id) }}#comentarios">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 4h14v9H8l-4 3v-3H3z"/></svg>
+      <span data-card-comments>{{ a.comment_count }}</span> <span class="sr-only">{{ "comentario" if a.comment_count == 1 else "comentarios" }}</span>
+    </a>
+    <a class="action action-read" href="{{ url_for('articles.detail', article_id=a.article_id) }}">Leer artículo →</a>
+  </footer>
+</article>

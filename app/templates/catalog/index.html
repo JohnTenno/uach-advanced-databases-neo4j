@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}{{ title }} · Blog Neo4j{% endblock %}
+{% block content %}
+{{ ui.page_head("(:Article)-[:" ~ service.relationship ~ "]->(:" ~ service.label ~ ")", title,
+     url_for(section ~ '.new') if current_user.is_admin else None, "Nueva " ~ service.noun) }}
+<section class="panel admin-panel frame-catalog">
+  <div class="table-wrap table-flush"><table class="catalog-table">
+    <thead><tr><th>Nombre</th><th>URL</th><th class="n">Artículos</th>{% if current_user.is_admin %}<th><span class="sr-only">Acciones</span></th>{% endif %}</tr></thead>
+    <tbody>
+    {% for item in items %}
+      <tr>
+        <td><strong>{{ item.name }}</strong></td><td><code>/{{ item.url }}</code></td><td class="n">{{ item.article_count }}</td>
+        {% if current_user.is_admin %}
+        <td class="row-actions">
+          <a class="btn btn-sm btn-ghost" href="{{ url_for(section ~ '.edit', item_id=item.id) }}">Editar</a>
+          {{ ui.delete_button(url_for(section ~ '.remove', item_id=item.id), "Eliminar " ~ service.noun,
+               "Vas a eliminar la " ~ service.noun ~ " «" ~ item.name ~ "» (/" ~ item.url ~ "). "
+               ~ ("Se quitará de " ~ item.article_count ~ (" artículo" if item.article_count == 1 else " artículos") ~ "; los artículos no se borran." if item.article_count else "Ningún artículo la usa.")) }}
+        </td>
+        {% endif %}
+      </tr>
+    {% else %}<tr><td colspan="4">No hay registros.</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

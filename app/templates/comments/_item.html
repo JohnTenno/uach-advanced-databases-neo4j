@@ -1,0 +1,18 @@
+{# One comment `c`; also rendered alone for the fetch response. #}
+    <li class="comment" id="comentario-{{ c.comment_id }}">
+      {% if c.user_id %}<a href="{{ url_for('profile.show', user_id=c.user_id) }}" tabindex="-1" aria-hidden="true">{{ ui.avatar(c.name, "sm", c.user_id, c.avatar) }}</a>{% else %}{{ ui.avatar(c.name, "sm", c.user_id, c.avatar) }}{% endif %}
+      <div class="comment-body">
+        <div class="comment-head">
+          <strong>{% if c.url %}<a href="{{ c.url }}" rel="nofollow noopener" target="_blank">{{ c.name }}</a>{% elif c.user_id %}<a class="post__name" href="{{ url_for('profile.show', user_id=c.user_id) }}">{{ c.name }}</a>{% else %}{{ c.name }}{% endif %}</strong>
+          <span class="muted num">{{ c.created_at | date }}{% if not c.user_id %} · cuenta eliminada{% endif %}</span>
+        </div>
+        <p>{{ c.body_text }}</p>
+        {% if current_user.can_delete(c.user_id) %}
+        <div class="actions actions-sm">
+          {% if current_user.can_edit(c.user_id) %}<a class="btn btn-sm btn-ghost" href="{{ url_for('comments.edit', comment_id=c.comment_id) }}">Editar</a>{% endif %}
+          {{ ui.delete_button(url_for('comments.remove', comment_id=c.comment_id), async_action='comment-delete', title= "Eliminar comentario", description=
+               "Vas a eliminar el comentario de " ~ c.name ~ ": «" ~ (c.body_text | truncate(120)) ~ "».") }}
+        </div>
+        {% endif %}
+      </div>
+    </li>

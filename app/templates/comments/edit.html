@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block title %}Editar comentario · Blog Neo4j{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <p class="eyebrow">Comentario en «{{ comment.article_title }}»</p>
+  <h1 class="title">Editar comentario</h1>
+  <form method="post" class="form" action="{{ url_for('comments.update', comment_id=comment.comment_id) }}">{{ csrf_field() }}
+    <div class="grid-2 grid-tight">
+      <label>Nombre a mostrar<input name="name" value="{{ field('name', comment.name) }}" maxlength="80" required></label>
+      <label>URL (opcional)<input type="url" name="url" value="{{ field('url', comment.url or '') }}" maxlength="200"></label>
+    </div>
+    <label>Comentario<textarea name="body_text" rows="4" maxlength="2000" required>{{ field('body_text', comment.body_text) }}</textarea></label>
+    <div class="actions">
+      <button class="btn btn-primary" type="submit">Guardar</button>
+      <a class="btn btn-ghost" href="{{ url_for('articles.detail', article_id=comment.article_id) }}#comentarios">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

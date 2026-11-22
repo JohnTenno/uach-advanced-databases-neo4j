@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#191C1D">
+  <title>{% block title %}Blog Neo4j{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  {% include "partials/reveal_head.html" %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body data-me="{{ current_user.id if current_user }}">
+<div class="shell">
+
+  <aside class="sidebar" aria-label="Navegación principal">
+    <a class="brand" href="{{ url_for('dashboard.index') }}">
+      <span class="brand-mark" aria-hidden="true">{% include "partials/glyph.html" %}</span>
+      <span>
+        <span class="brand-name">Blog</span><br>
+        <span class="brand-sub">Neo4j</span>
+      </span>
+    </a>
+    <nav class="nav">{% include "partials/nav_links.html" %}</nav>
+    <div class="sidebar-foot">Conectado a<strong>{{ db_target }}</strong></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <form class="top-search" method="get" role="search" action="{{ url_for('dashboard.index') }}">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="M14 14l4 4"/></svg>
+        <label class="sr-only" for="top-q">Buscar en el blog</label>
+        {% if tag is defined and tag %}<input type="hidden" name="tag" value="{{ tag }}">{% endif %}
+        {% if category is defined and category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+        {% if sort is defined and sort == 'popular' %}<input type="hidden" name="sort" value="popular">{% endif %}
+        <input id="top-q" type="search" name="q" value="{{ q if request.endpoint == 'dashboard.index' and q is defined else '' }}" placeholder="Buscar en el blog: artículos y personas…" maxlength="80">
+      </form>
+      <details class="account">
+        <summary aria-label="Cuenta de {{ current_user.name }}">
+          {{ ui.avatar(current_user.name, '', current_user.id, current_user.avatar) }}
+          <span class="account-name">{{ current_user.name }}</span>
+        </summary>
+        <div class="account-menu">
+          <div class="account-who">
+            {{ ui.avatar(current_user.name, "lg", current_user.id, current_user.avatar) }}
+            <div>
+              <strong>{{ current_user.name }}</strong>
+              <span class="muted">{{ current_user.email }}</span>
+              <span class="badge {{ 'badge-published' if current_user.is_admin }}">{{ 'Administrador' if current_user.is_admin else 'Autor' }}</span>
+            </div>
+          </div>
+          <a class="btn btn-block" href="{{ url_for('profile.show') }}">Mi perfil</a>
+          <form method="post" action="{{ url_for('auth.logout') }}">{{ csrf_field() }}
+            <button class="btn btn-ghost btn-block" type="submit">Cerrar sesión</button>
+          </form>
+        </div>
+      </details>
+    </header>
+    <main class="content" id="contenido">
+      {% include "partials/flash.html" %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+</div>
+<nav class="bottom-nav" aria-label="Navegación principal">{% include "partials/nav_links.html" %}</nav>
+{% include "partials/confirm_dialog.html" %}
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+<script>
+  // Close the account menu when clicking anywhere else.
+  document.addEventListener("click", (e) => {
+    const menu = document.querySelector(".account");
+    if (menu && menu.open && !menu.contains(e.target)) menu.open = false;
+  });
+</script>
+</body>
+</html>

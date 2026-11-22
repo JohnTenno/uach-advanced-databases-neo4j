@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% block title %}Editar perfil · Blog Neo4j{% endblock %}
+{% block content %}
+{{ ui.page_head("(:User)", "Editar perfil") }}
+<form method="post" class="panel form frame-profile" enctype="multipart/form-data" action="{{ url_for('profile.update') }}">{{ csrf_field() }}
+  <fieldset class="form-group">
+    <legend>Tus datos</legend>
+    <label>Nombre<input name="name" value="{{ field('name', user.name) }}" maxlength="80" required></label>
+    <label>Correo<input type="email" name="email" value="{{ field('email', user.email) }}" required autocomplete="email"></label>
+    <label>Contraseña nueva <span class="hint">Déjala vacía para no cambiarla.</span>
+      <input type="password" name="new_password" minlength="8" autocomplete="new-password"></label>
+    <label>Contraseña actual <span class="hint">Solo si cambias el correo o la contraseña.</span>
+      <input type="password" name="current_password" autocomplete="current-password"></label>
+  </fieldset>
+  <fieldset class="form-group">
+    <legend>Fotos</legend>
+  <div class="image-field">
+    <label>Foto de perfil <span class="muted">(JPG, PNG, WebP o GIF, máx. 5 MB; se recorta en cuadro)</span>
+      <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+    {% if user.avatar %}
+    <div class="image-current">
+      {{ ui.avatar(user.name, "xl", user.user_id, user.avatar) }}
+      <label class="check-chip"><input type="checkbox" name="remove_avatar" value="1" {% if field('remove_avatar') == '1' %}checked{% endif %}><span>Quitar foto</span></label>
+    </div>
+    {% endif %}
+  </div>
+  <div class="image-field">
+    <label>Portada <span class="muted">(se ve mejor horizontal, por ejemplo 1500×500)</span>
+      <input type="file" name="cover" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+    {% if user.cover %}
+    <div class="image-current">
+      <img src="{{ url_for('profile.photo', user_id=user.user_id, kind='cover', v=user.cover[:8]) }}" alt="Portada actual">
+      <label class="check-chip"><input type="checkbox" name="remove_cover" value="1" {% if field('remove_cover') == '1' %}checked{% endif %}><span>Quitar portada</span></label>
+    </div>
+    {% endif %}
+  </div>
+  </fieldset>
+  <div class="actions">
+    <button class="btn btn-primary" type="submit">Guardar</button>
+    <a class="btn btn-ghost" href="{{ url_for('profile.show') }}">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

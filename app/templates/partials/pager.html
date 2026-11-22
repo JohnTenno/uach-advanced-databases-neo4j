@@ -1,0 +1,9 @@
+{# Expects page and pages; keeps the current route and query, only the page changes. #}
+{% if pages > 1 %}
+{% macro to(p) %}{% set args = request.args.to_dict() %}{% set _ = args.update(request.view_args, page=p) %}{{ url_for(request.endpoint, **args) }}{% endmacro %}
+<nav class="pager" aria-label="Páginas">
+  {% if page > 1 %}<a class="btn btn-ghost" href="{{ to(page - 1) }}">← Anterior</a>{% endif %}
+  <span class="muted">Página {{ page }} de {{ pages }}</span>
+  {% if page < pages %}<a class="btn btn-ghost" href="{{ to(page + 1) }}">Siguiente →</a>{% endif %}
+</nav>
+{% endif %}

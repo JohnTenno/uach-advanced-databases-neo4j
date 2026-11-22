@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% block title %}{{ profile_user.name }} · Blog Neo4j{% endblock %}
+{% block content %}
+{% set u = profile_user %}
+<div class="home">
+<div class="feed">
+  <section class="panel profile">
+    <div class="cover-row" aria-hidden="true">
+      <div class="profile-cover" data-reveal="media">
+        {% if u.cover %}<img src="{{ url_for('profile.photo', user_id=u.user_id, kind='cover', v=u.cover[:8]) }}" alt="">
+        {% else %}<span>(:User {user_id: {{ u.user_id }}})</span>{% endif %}</div>
+      <div class="cover-band"><b>{{ 'Admin' if u.role == 'ADMIN' else 'Autor' }}</b><span>#{{ u.user_id }} / BLOG</span></div>
+    </div>
+    <div class="profile-head">
+      <span data-reveal="flicker" data-delay="580">{{ ui.avatar(u.name, "xl", u.user_id, u.avatar) }}</span>
+      <div class="profile-head__actions">
+        {% if mine %}<a class="btn" href="{{ url_for('profile.edit') }}">Editar perfil</a>
+        <a class="btn btn-primary" href="{{ url_for('articles.new') }}">Nuevo artículo</a>
+        {% elif current_user.is_admin %}<a class="btn" href="{{ url_for('users.edit', user_id=u.user_id) }}">Editar usuario</a>{% endif %}
+      </div>
+    </div>
+    <div class="profile-body" data-reveal="flicker" data-delay="700">
+      <h1 class="profile-name">{{ u.name }}</h1>
+      <p class="muted">{{ 'Administrador' if u.role == 'ADMIN' else 'Autor' }} · en el blog desde {{ u.created_at | date }}</p>
+      <div class="profile-stats">
+        <span><b>{{ published }}</b> {{ "publicación" if published == 1 else "publicaciones" }}</span>
+        <span><b>{{ stats.comments }}</b> {{ "comentario" if stats.comments == 1 else "comentarios" }}</span>
+        <span><b>{{ stats.likes }}</b> me gusta</span>
+      </div>
+    </div>
+    <nav class="profile-tabs" aria-label="Contenido del perfil">
+      {% for key, label in [('posts', 'Publicaciones'), ('photos', 'Fotos')] + ([('drafts', 'Borradores')] if mine else []) %}
+      <a href="{{ url_for('profile.show', user_id=None if mine else u.user_id, tab=None if key == 'posts' else key) }}"
+         {% if tab == key %}aria-current="true"{% endif %}>{{ label }}{% if key == 'drafts' %} <span class="tab-count">{{ drafts }}</span>{% endif %}</a>
+      {% endfor %}
+    </nav>
+  </section>
+
+  {% if tab == 'photos' %}
+    {% if articles %}
+    <div class="tiles">
+      {% for a in articles %}
+      <a class="tile" href="{{ url_for('articles.detail', article_id=a.article_id) }}" id="articulo-{{ a.article_id }}">
+        <img src="{{ url_for('articles.image', article_id=a.article_id) }}" alt="{{ a.title }}" loading="lazy">
+        <span class="tile__meta"><span><span data-like-count>{{ a.like_count }}</span> me gusta</span><span><span data-card-comments>{{ a.comment_count }}</span> coment.</span></span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}<div class="panel empty">Todavía no hay publicaciones con imagen.</div>{% endif %}
+  {% else %}
+    {% for a in articles %}{% include "articles/_card.html" %}
+    {% else %}
+      <div class="panel empty">{{ 'No tienes borradores.' if tab == 'drafts' else ('Todavía no publicas nada.' if mine else 'Todavía no ha publicado nada.') }}</div>
+    {% endfor %}
+  {% endif %}
+{% include "partials/pager.html" %}
+</div>
+<aside class="home-side">
+  {% if popular %}
+  <section class="panel">
+    <h2 class="section-title">Lo más popular</h2>
+    {% macro meta(m) %}{{ m.like_count }} me gusta{% endmacro %}
+    {% set items = popular %}{% include "partials/mini_posts.html" %}
+  </section>
+  {% endif %}
+  <section class="panel">
+    <h2 class="section-title">Su comunidad</h2>
+    <p class="eyebrow">Quién comenta más sus artículos</p>
+    {% if community %}
+    <ul class="people">
+      {% for p in community %}
+      <li><a href="{{ url_for('profile.show', user_id=p.user_id) }}">{{ ui.avatar(p.name, "sm", p.user_id, p.avatar) }}
+        <span><strong>{{ p.name }}</strong><span class="muted">{{ p.comments }} comentario{{ '' if p.comments == 1 else 's' }}</span></span></a></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">Todavía nadie comenta sus artículos.</p>{% endif %}
+  </section>
+  {% if topics %}
+  <section class="panel">
+    <h2 class="section-title">Escribe sobre</h2>
+    <ul class="tags-line tags-line--flush">
+      {% for t in topics %}<li><a class="tag-cat" href="{{ url_for('dashboard.index', category=t.name) }}">{{ t.name }} · {{ t.total }}</a></li>{% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</aside>
+</div>
+{% endblock %}
