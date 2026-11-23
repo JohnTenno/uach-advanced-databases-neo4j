@@ -1,9 +1,22 @@
-{# Expects page and pages; keeps the current route and query, only the page changes. #}
-{% if pages > 1 %}
-{% macro to(p) %}{% set args = request.args.to_dict() %}{% set _ = args.update(request.view_args, page=p) %}{{ url_for(request.endpoint, **args) }}{% endmacro %}
-<nav class="pager" aria-label="Páginas">
-  {% if page > 1 %}<a class="btn btn-ghost" href="{{ to(page - 1) }}">← Anterior</a>{% endif %}
-  <span class="muted">Página {{ page }} de {{ pages }}</span>
-  {% if page < pages %}<a class="btn btn-ghost" href="{{ to(page + 1) }}">Siguiente →</a>{% endif %}
+{# Expects `pagination` (app/common/pagination.py, computed on the server) and optionally
+   `pager_noun` = (singular, plural). Links keep the current route and query; only ?page= changes. #}
+{% set p = pagination %}
+{% set noun = pager_noun or ("registro", "registros") %}
+{% macro to(n) %}{% set args = request.args.to_dict() %}{% set _ = args.update(request.view_args, page=n) %}{{ url_for(request.endpoint, **args) }}{% endmacro %}
+{% macro step(n, label, text) %}<li>{% if n != p.number and 1 <= n <= p.pages %}<a class="pager__btn" href="{{ to(n) }}" aria-label="{{ label }}">{{ text }}</a>{% else %}<span class="pager__btn" aria-disabled="true" aria-label="{{ label }}">{{ text }}</span>{% endif %}</li>{% endmacro %}
+<nav class="pager" aria-label="Paginación">
+  <p class="pager__count">{% if p.total %}Mostrando <b class="num">{{ p.first_item }}–{{ p.last_item }}</b> de <b class="num">{{ p.total }}</b> {{ noun[0] if p.total == 1 else noun[1] }}{% else %}Sin {{ noun[1] }}{% endif %}</p>
+  {% if p.pages > 1 %}
+  <ul class="pager__pages">
+    {{ step(1, "Primera página", "«") }}
+    {{ step(p.number - 1, "Página anterior", "‹") }}
+    {% for n in p.window %}
+      {% if n is none %}<li class="pager__num"><span class="pager__gap" aria-hidden="true">…</span></li>
+      {% elif n == p.number %}<li class="pager__current"><span class="pager__btn" aria-current="page" aria-label="Página {{ n }}, actual">{{ n }}</span></li>
+      {% else %}<li class="pager__num"><a class="pager__btn" href="{{ to(n) }}" aria-label="Página {{ n }}">{{ n }}</a></li>{% endif %}
+    {% endfor %}
+    {{ step(p.number + 1, "Página siguiente", "›") }}
+    {{ step(p.pages, "Última página", "»") }}
+  </ul>
+  {% endif %}
 </nav>
-{% endif %}

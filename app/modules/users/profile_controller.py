@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, g, make_response, redirect, render_template, request, send_file, url_for
 
 from app.common.errors import NotFoundError
+from app.common.pagination import Pagination
 from app.common.forms import raw, text
 from app.database import config
 from app.modules.auth.jwt_guard import COOKIE_NAME, auth_service
@@ -32,13 +33,12 @@ def show(user_id: int = None):
     photos = tab == "photos"
     size = PHOTO_PAGE_SIZE if photos else PAGE_SIZE
     total = drafts if tab == "drafts" else articles.count_by_author(user.user_id, with_image=True) if photos else published
-    pages = max(1, -(-total // size))
-    page = min(max(request.args.get("page", 1, type=int), 1), pages)
+    pagination = Pagination.from_request(total, size)
     items = articles.find_by_author(user.user_id, g.user, TABS[tab], limit=size,
-                                    offset=(page - 1) * size, with_image=photos)
+                                    offset=pagination.offset, with_image=photos)
     return render_template("users/profile.html", section="profile" if mine else "", profile_user=user, mine=mine,
                            tab=tab, articles=items, published=published, drafts=drafts,
-                           stats=users.profile_stats(user.user_id), page=page, pages=pages,
+                           stats=users.profile_stats(user.user_id), pagination=pagination,
                            popular=articles.find_popular_by_author(user.user_id),
                            community=users.community(user.user_id), topics=users.topics(user.user_id))
 

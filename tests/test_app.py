@@ -86,3 +86,15 @@ class SpreadAuthorsTest(unittest.TestCase):
         self.assertEqual(sorted(authors), sorted([1, 1, 1, 2, 3, 2, 2, 4]))
         self.assertFalse(any(x == y for x, y in zip(authors, authors[1:])), authors)
         self.assertEqual(ArticlesService.spread_authors([posts[0], posts[1]])[0].article_id, 0, "only one author: order kept")
+
+
+class PaginationTest(unittest.TestCase):
+    def test_counts_and_page_window(self):
+        from app.common.pagination import Pagination
+        p = Pagination(number=6, size=10, total=115)
+        self.assertEqual((p.pages, p.offset, p.first_item, p.last_item), (12, 50, 51, 60))
+        self.assertEqual(p.window, [1, None, 4, 5, 6, 7, 8, None, 12])
+        self.assertEqual(Pagination(1, 10, 17).window, [1, 2])
+        self.assertEqual(Pagination(2, 10, 17).last_item, 17)
+        empty = Pagination(1, 10, 0)
+        self.assertEqual((empty.pages, empty.first_item, empty.last_item), (1, 0, 0))

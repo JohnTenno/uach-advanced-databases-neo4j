@@ -1,5 +1,6 @@
 from flask import Blueprint, g, render_template, request
 
+from app.common.pagination import Pagination
 from app.modules.articles.articles_service import ArticlesService
 from app.modules.auth.jwt_guard import jwt_required
 from app.modules.dashboard.dashboard_service import DashboardService
@@ -23,12 +24,10 @@ def index():
     tag, category = request.args.get("tag", "")[:80], request.args.get("category", "")[:80]
     q = request.args.get("q", "").strip()[:80]
     sort = "popular" if request.args.get("sort") == "popular" else "recent"
-    total = articles.count_published(tag, category, q)
-    pages = max(1, -(-total // PAGE_SIZE))
-    page = min(max(request.args.get("page", 1, type=int), 1), pages)
-    return render_template("dashboard/index.html", section="home", page=page, pages=pages, total=total,
+    pagination = Pagination.from_request(articles.count_published(tag, category, q), PAGE_SIZE)
+    return render_template("dashboard/index.html", section="home", pagination=pagination, total=pagination.total,
                            tag=tag, category=category, q=q, sort=sort, people=users.find_all(q, 6) if q else [],
-                           feed=articles.find_published(g.user, PAGE_SIZE, (page - 1) * PAGE_SIZE, tag, category, q,
+                           feed=articles.find_published(g.user, PAGE_SIZE, pagination.offset, tag, category, q,
                                                      popular=sort == "popular"),
                            published=articles.count_by_author(g.user.id),
                            drafts=articles.count_by_author(g.user.id, "DRAFT"),

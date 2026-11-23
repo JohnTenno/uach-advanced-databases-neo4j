@@ -57,7 +57,7 @@
     </div>
     {% for a in feed %}{% include "articles/_card.html" %}
     {% else %}<div class="panel empty">{{ 'Ningún artículo coincide.' if tag or category or q else 'Todavía no hay artículos publicados.' }}</div>{% endfor %}
-    {% include "partials/pager.html" %}
+    {% set pager_noun = ("artículo", "artículos") %}{% include "partials/pager.html" %}
   </section>
 
   <aside class="home-side">

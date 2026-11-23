@@ -1,5 +1,6 @@
 from flask import Blueprint, flash, g, redirect, render_template, request, url_for
 
+from app.common.pagination import Pagination
 from app.modules.auth.jwt_guard import roles
 from app.modules.users.schemas.user_schema import SaveUserSchema
 from app.modules.users.users_service import UsersService
@@ -13,10 +14,9 @@ PAGE_SIZE = 20
 @roles("ADMIN")
 def index():
     q = request.args.get("q", "").strip()[:80]
-    pages = max(1, -(-service.count(q) // PAGE_SIZE))
-    page = min(max(request.args.get("page", 1, type=int), 1), pages)
-    return render_template("users/index.html", section="users", q=q, page=page, pages=pages,
-                           total=service.count(q), users=service.find_all(q, PAGE_SIZE, (page - 1) * PAGE_SIZE))
+    pagination = Pagination.from_request(service.count(q), PAGE_SIZE)
+    return render_template("users/index.html", section="users", q=q, pagination=pagination, total=pagination.total,
+                           users=service.find_all(q, PAGE_SIZE, pagination.offset))
 
 
 @users.get("/new")

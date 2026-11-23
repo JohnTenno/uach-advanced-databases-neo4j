@@ -1,8 +1,12 @@
 """Builds the admin blueprint for a catalog (tags or categories)."""
 from flask import Blueprint, flash, redirect, render_template, url_for
 
+from app.common.pagination import Pagination
 from app.common.taxonomy_service import SaveTaxonomySchema, TaxonomyService
 from app.modules.auth.jwt_guard import roles
+
+
+PAGE_SIZE = 10
 
 
 def taxonomy_blueprint(name: str, service: TaxonomyService, title: str) -> Blueprint:
@@ -11,8 +15,9 @@ def taxonomy_blueprint(name: str, service: TaxonomyService, title: str) -> Bluep
     @bp.get("/")
     @roles("ADMIN")  # authors pick tags and categories from the article itself
     def index():
-        return render_template("catalog/index.html", section=name, title=title,
-                               service=service, items=service.find_all())
+        pagination = Pagination.from_request(service.count(), PAGE_SIZE)
+        return render_template("catalog/index.html", section=name, title=title, service=service, pagination=pagination,
+                               items=service.find_all(PAGE_SIZE, pagination.offset))
 
     @bp.get("/new")
     @roles("ADMIN")

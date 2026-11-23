@@ -22,5 +22,6 @@
     {% else %}<tr><td colspan="4">No hay registros.</td></tr>{% endfor %}
     </tbody>
   </table></div>
+  {% set pager_noun = (service.noun, service.noun ~ "s") %}{% include "partials/pager.html" %}
 </section>
 {% endblock %}

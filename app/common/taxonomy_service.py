@@ -49,12 +49,16 @@ class TaxonomyService:
     def fields(self) -> str:
         return f"t.{self.key} AS id, t.name AS name, t.url AS url"
 
-    def find_all(self) -> List[TaxonomyItem]:
+    def count(self) -> int:
+        return read_one(f"MATCH (t:{self.label}) WHERE t.deleted_at IS NULL RETURN count(t) AS total")["total"]
+
+    def find_all(self, limit: Optional[int] = None, offset: int = 0) -> List[TaxonomyItem]:
+        """All of them (the article form needs every option), or one page with limit/offset."""
         rows = read(f"""
             MATCH (t:{self.label}) WHERE t.deleted_at IS NULL
             RETURN {self.fields},
                    COUNT {{ (a:Article)-[:{self.relationship}]->(t) WHERE a.deleted_at IS NULL }} AS article_count
-            ORDER BY t.name""")
+            ORDER BY t.name SKIP $offset {"LIMIT $limit" if limit else ""}""", offset=offset, limit=limit)
         return [TaxonomyItem(**row) for row in rows]
 
     def find_used(self, limit: int = 50) -> List[TaxonomyItem]:

@@ -53,7 +53,7 @@
       <div class="panel empty">{{ 'No tienes borradores.' if tab == 'drafts' else ('Todavía no publicas nada.' if mine else 'Todavía no ha publicado nada.') }}</div>
     {% endfor %}
   {% endif %}
-{% include "partials/pager.html" %}
+{% set pager_noun = ("foto", "fotos") if tab == "photos" else ("borrador", "borradores") if tab == "drafts" else ("publicación", "publicaciones") %}{% include "partials/pager.html" %}
 </div>
 <aside class="home-side">
   {% if popular %}
