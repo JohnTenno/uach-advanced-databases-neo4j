@@ -788,3 +788,9 @@ section.panel:has(> .title + .actions) { max-width: 640px; }
   .tags-line li { position: relative; min-height: 44px; min-width: 44px; display: flex; align-items: center; justify-content: center; }
   .tags-line li a::after { content: ""; position: absolute; inset: 0 -3px; }
 }
+
+/* "Ver comentarios anteriores": a full-width quiet row above the list. */
+.comments-more { display: flex; align-items: center; min-height: 44px; padding: 0 12px; margin: 8px 0; border: 1px solid var(--line);
+  background: var(--raised); font-weight: 600; text-decoration: none; color: var(--ink); }
+.comments-more:hover { border-color: var(--ink); box-shadow: inset 3px 0 0 var(--signal); }
+.comments-more[aria-busy="true"] { cursor: progress; color: var(--soft); }

@@ -13,6 +13,7 @@ from app.modules.comments.comments_service import CommentsService
 from app.modules.tags.tags_service import TagsService
 
 articles = Blueprint("articles", __name__, url_prefix="/articles")
+COMMENT_BATCH = 10  # newest comments shown on the detail page; keep in sync with comments_controller.BATCH
 service = ArticlesService()
 comments = CommentsService()
 catalogs = {"tags": TagsService(), "categories": CategoriesService()}
@@ -61,8 +62,12 @@ def create():
 @jwt_required
 def detail(article_id: int):
     article = service.find_one(article_id, g.user)
+    # The newest comments first; older ones load in batches ("Ver comentarios anteriores").
+    # ?comentarios=todos shows them all, so the link also works without JavaScript.
+    total = comments.count_by_article(article_id)
+    shown = comments.find_by_article(article_id, limit=None if request.args.get("comentarios") == "todos" else COMMENT_BATCH)
     return render_template("articles/detail.html", section="home", article=article,
-                           comments=comments.find_by_article(article_id),
+                           comments=shown, comment_total=total, older=total - len(shown),
                            related=service.find_related(article, g.user) if article.status == "PUBLISHED" else [],
                            more=service.find_popular_by_author(article.author_id, exclude=article_id))
 
@@ -84,14 +89,14 @@ def update(article_id: int):
     return redirect(url_for("articles.detail", article_id=article_id))
 
 
-@articles.post("/<int:article_id>/<any(publish, draft):intent>")
+@articles.post("/<int:article_id>/publish")
 @jwt_required
-def change_status(article_id: int, intent: str):
-    status = "PUBLISHED" if intent == "publish" else "DRAFT"
+def change_status(article_id: int):
+    """Publish a draft. There is no way back: a published article is edited or deleted."""
     was = service.find_editable(article_id, g.user).status
-    service.set_status(article_id, status, g.user)
-    announce(article_id, was == "PUBLISHED", status == "PUBLISHED")
-    flash(SAVED[status], "ok")
+    service.set_status(article_id, "PUBLISHED", g.user)
+    announce(article_id, was == "PUBLISHED", True)
+    flash(SAVED["PUBLISHED"], "ok")
     return redirect(url_for("articles.detail", article_id=article_id))
 
 

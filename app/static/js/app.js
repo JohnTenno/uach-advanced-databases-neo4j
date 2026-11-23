@@ -43,6 +43,11 @@
     if (word?.classList.contains("sr-only")) word.textContent = Number(value) === 1 ? "comentario" : "comentarios";
   };
   const setCounts = (value) => document.querySelectorAll("[data-comment-count]").forEach((el) => countWord(el, value));
+  const getJSON = async (url) => {
+    const response = await fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  };
   const commentCount = () => Number(document.querySelector("[data-comment-count]")?.textContent || 0);
 
   const handlers = {
@@ -129,6 +134,33 @@
       }
     },
   };
+
+  // "Ver comentarios anteriores": the server sends the previous batch as HTML and how many are
+  // still older; it goes on top of the list, like Facebook or Instagram. Without JS the link shows them all.
+  document.addEventListener("click", async (event) => {
+    const more = event.target.closest("[data-comments-more]");
+    if (!more || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    event.preventDefault();
+    if (more.getAttribute("aria-busy") === "true") return;
+    const list = document.querySelector(".comments[data-url]");
+    const label = more.innerHTML;
+    more.setAttribute("aria-busy", "true");
+    more.innerHTML = '<span class="spinner" aria-hidden="true"></span>Cargando comentarios…';
+    try {
+      const data = await getJSON(`${more.dataset.url}?before=${more.dataset.before}`);
+      list.insertAdjacentHTML("afterbegin", data.html);
+      const first = list.querySelector("li.comment");
+      if (!data.older || !first) { more.remove(); return; }
+      more.dataset.before = first.id.replace("comentario-", "");
+      more.innerHTML = label;
+      more.querySelector("[data-older]").textContent = data.older;
+    } catch {
+      more.innerHTML = label; // the plain link still works: a second click falls back to it
+      more.removeAttribute("data-comments-more");
+    } finally {
+      more.removeAttribute("aria-busy");
+    }
+  });
 
   // A comment saved when the session expired comes back into its box.
   const draftKey = "comment-draft:" + location.pathname;
@@ -289,14 +321,18 @@
 
     on("comment", async ({ article_id, count }) => {
       document.querySelectorAll(`#articulo-${article_id} [data-card-comments]`).forEach((el) => countWord(el, count));
-      const list = document.querySelector(".comments");
+      const list = document.querySelector(".comments[data-url]");
       if (!list || !document.getElementById(`articulo-${article_id}`)) return;
+      setCounts(count);
+      if (list.querySelector(".comment--pending, li[hidden]")) return; // our own change is still in flight
+      // Ask the server only for what is newer than the last comment on screen.
+      const last = [...list.querySelectorAll("li.comment")].pop();
       try {
-        const page = await fetch(location.pathname, { credentials: "same-origin" });
-        if (!page.ok) return;
-        const fresh = new DOMParser().parseFromString(await page.text(), "text/html").querySelector(".comments");
-        if (fresh && !list.querySelector(".comment--pending, li[hidden]")) list.innerHTML = fresh.innerHTML;
-        setCounts(count);
+        const data = await getJSON(`${list.dataset.url}?after=${last ? last.id.replace("comentario-", "") : 0}`);
+        if (!data.html) return;
+        list.querySelector(".comments-empty")?.remove();
+        list.insertAdjacentHTML("beforeend", data.html);
+        setCounts(data.count);
       } catch {}
     });
 

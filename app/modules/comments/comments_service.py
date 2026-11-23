@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from app.common.errors import ForbiddenError, NotFoundError
 from app.database import read, read_one, write
@@ -18,10 +18,30 @@ FIELDS = """c.comment_id AS comment_id, a.article_id AS article_id, a.title AS a
 
 
 class CommentsService:
-    def find_by_article(self, article_id: int) -> List[Comment]:
-        rows = read(f"{MATCH} WITH c, a, u WHERE a.article_id = $id RETURN {FIELDS} ORDER BY c.created_at",
-                    id=article_id)
-        return [Comment(**row) for row in rows]
+    # Comments are ordered by (created_at, comment_id); a cursor is the comment to read before or after.
+    WINDOW = """WHERE a.article_id = $id
+              AND ($before IS NULL OR c.created_at < $before_at OR (c.created_at = $before_at AND c.comment_id < $before))
+              AND ($after IS NULL OR c.created_at > $after_at OR (c.created_at = $after_at AND c.comment_id > $after))"""
+
+    def find_by_article(self, article_id: int, limit: Optional[int] = None,
+                        before: Optional[int] = None, after: Optional[int] = None) -> List[Comment]:
+        """Oldest first, like a conversation. With limit, only the newest `limit` of them (before the
+        `before` comment when given): "ver comentarios anteriores" walks back one batch at a time.
+        With after, only the ones newer than that comment (what arrived live)."""
+        rows = read(f"""{MATCH} WITH c, a, u {self.WINDOW}
+            RETURN {FIELDS} ORDER BY c.created_at DESC, c.comment_id DESC {"LIMIT $limit" if limit else ""}""",
+                    id=article_id, limit=limit, **self._cursors(before, after))
+        return [Comment(**row) for row in reversed(rows)]
+
+    def count_by_article(self, article_id: int, before: Optional[int] = None) -> int:
+        return read_one(f"{MATCH} WITH c, a {self.WINDOW} RETURN count(c) AS total",
+                        id=article_id, **self._cursors(before, None))["total"]
+
+    @staticmethod
+    def _cursors(before: Optional[int], after: Optional[int]) -> dict:
+        at = lambda comment_id: comment_id and (read_one(
+            "MATCH (c:Comment {comment_id: $id}) RETURN c.created_at AS at", id=comment_id) or {}).get("at")
+        return {"before": before, "before_at": at(before), "after": after, "after_at": at(after)}
 
     def find_one(self, comment_id: int) -> Comment:
         row = read_one(f"{MATCH} WITH c, a, u WHERE c.comment_id = $id RETURN {FIELDS}", id=comment_id)

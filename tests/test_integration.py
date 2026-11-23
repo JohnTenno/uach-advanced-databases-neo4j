@@ -147,16 +147,21 @@ class BlogFlowTest(unittest.TestCase):
         self.assertIn("Ya existe una etiqueta con ese nombre".encode(), response.data)
         self.assertIn(b'value="otra"', response.data, "the form keeps what was typed")
 
-    def test_comment_does_not_open_a_draft(self):
+    def test_published_never_goes_back_to_draft(self):
         luis, sofia = self.client_for("luis.moreno@correo.com"), self.client_for("sofia.ramirez@correo.com")
-        response = luis.post("/articles/", data={"title": "QA borrador", "body_text": "x", "intent": "publish"})
+        response = luis.post("/articles/", data={"title": "QA publicado", "body_text": "x", "intent": "publish"})
         article_id = int(re.search(r"/articles/(\d+)", response.headers["Location"]).group(1))
         sofia.post(f"/articles/{article_id}/comments", data={"body_text": "QA comentario"})
-        page = sofia.get(f"/articles/{article_id}").data.decode()
-        comment_id = int(re.search(r"/comments/(\d+)/edit", page).group(1))
-        luis.post(f"/articles/{article_id}/draft")
-        self.assertEqual(sofia.get(f"/comments/{comment_id}/edit").status_code, 404)
-        self.assertEqual(sofia.post(f"/comments/{comment_id}", data={"body_text": "y"}).status_code, 404)
+        self.assertNotIn(b"Pasar a borrador", luis.get(f"/articles/{article_id}").data)
+        self.assertNotIn(b'value="draft"', luis.get(f"/articles/{article_id}/edit").data)
+        edited = luis.post(f"/articles/{article_id}", data={"title": "QA publicado", "body_text": "x", "intent": "draft"})
+        self.assertEqual(edited.status_code, 400)
+        self.assertEqual(luis.post(f"/articles/{article_id}/draft").status_code, 404, "the route is gone")
+        self.assertEqual(sofia.get(f"/articles/{article_id}").status_code, 200, "still public, with its comment")
+        draft = luis.post("/articles/", data={"title": "QA borrador", "body_text": "x", "intent": "draft"})
+        draft_id = int(re.search(r"/articles/(\d+)", draft.headers["Location"]).group(1))
+        self.assertEqual(sofia.post(f"/articles/{draft_id}/comments", data={"body_text": "QA no"}).status_code, 404)
+        luis.post(f"/articles/{draft_id}/delete")
         luis.post(f"/articles/{article_id}/delete")
 
     def test_bad_tag_rolls_back_the_whole_article(self):
@@ -180,8 +185,10 @@ class BlogFlowTest(unittest.TestCase):
         self.assertIn(b"Me gusta (1)", luis.get(f"/articles/{article_id}").data.replace(b"Quitar me gusta", b"Me gusta"))
         sofia.post(f"/articles/{article_id}/like", data={"want": "0"})
         self.assertIn(b'aria-pressed="false"', sofia.get(f"/articles/{article_id}").data)
-        luis.post(f"/articles/{article_id}/draft")
-        self.assertEqual(luis.post(f"/articles/{article_id}/like").status_code, 400)
+        draft = luis.post("/articles/", data={"title": "QA likes borrador", "body_text": "x", "intent": "draft"})
+        draft_id = int(re.search(r"/articles/(\d+)", draft.headers["Location"]).group(1))
+        self.assertEqual(luis.post(f"/articles/{draft_id}/like").status_code, 400)
+        luis.post(f"/articles/{draft_id}/delete")
         luis.post(f"/articles/{article_id}/delete")
 
     def test_cover_image_is_validated_stored_and_removed(self):
@@ -212,6 +219,33 @@ class BlogFlowTest(unittest.TestCase):
                                       "tag_ids": ["999999"], "image": (io.BytesIO(png), "foto.png")},
                   content_type="multipart/form-data")
         self.assertEqual(set(uploads.iterdir()), before, "a rolled back article leaves no file behind")
+
+    def test_comments_load_in_batches_like_a_feed(self):
+        luis, sofia = self.client_for("luis.moreno@correo.com"), self.client_for("sofia.ramirez@correo.com")
+        response = luis.post("/articles/", data={"title": "QA muchos comentarios", "body_text": "x", "intent": "publish"})
+        article_id = int(re.search(r"/articles/(\d+)", response.headers["Location"]).group(1))
+        for n in range(1, 14):
+            sofia.post(f"/articles/{article_id}/comments", data={"body_text": f"QA c{n:02d}"})
+        ids = lambda html: [int(i) for i in re.findall(r'id="comentario-(\d+)"', html)]
+        page = sofia.get(f"/articles/{article_id}").data.decode()
+        shown = ids(page)
+        self.assertEqual(len(shown), 10, "only the newest 10 at first")
+        self.assertIn("QA c13", page)
+        self.assertNotIn("QA c03", page)
+        self.assertIn("Ver comentarios anteriores (<span data-older>3</span>)", page)
+        older = sofia.get(f"/articles/{article_id}/comments?before={shown[0]}").get_json()
+        self.assertEqual((len(ids(older["html"])), older["older"], older["count"]), (3, 0, 13))
+        self.assertLess(older["html"].index("QA c01"), older["html"].index("QA c03"), "oldest first")
+        self.assertEqual(ids(sofia.get(f"/articles/{article_id}/comments?after={shown[-1]}").get_json()["html"]), [])
+        newer = sofia.get(f"/articles/{article_id}/comments?after={shown[-2]}").get_json()
+        self.assertEqual(ids(newer["html"]), [shown[-1]])
+        self.assertEqual(len(ids(sofia.get(f"/articles/{article_id}?comentarios=todos").data.decode())), 13, "no-JS fallback")
+        self.assertEqual(sofia.get(f"/articles/{article_id}/comments").status_code, 400)
+        draft = luis.post("/articles/", data={"title": "QA borrador lote", "body_text": "x", "intent": "draft"})
+        draft_id = int(re.search(r"/articles/(\d+)", draft.headers["Location"]).group(1))
+        self.assertEqual(sofia.get(f"/articles/{draft_id}/comments?after=0").status_code, 404, "drafts stay private")
+        luis.post(f"/articles/{draft_id}/delete")
+        luis.post(f"/articles/{article_id}/delete")
 
     def test_background_actions_answer_json(self):
         luis, sofia = self.client_for("luis.moreno@correo.com"), self.client_for("sofia.ramirez@correo.com")
@@ -428,7 +462,7 @@ class BlogFlowTest(unittest.TestCase):
         self.assertIn(f"/articles/{article_id}/delete".encode(), page)
         self.assertEqual(ana.get(f"/articles/{article_id}/edit").status_code, 403)
         self.assertEqual(ana.post(f"/articles/{article_id}", data={"title": "Hackeado", "body_text": "x"}).status_code, 403)
-        self.assertEqual(ana.post(f"/articles/{article_id}/draft").status_code, 403)
+        self.assertEqual(ana.post(f"/articles/{article_id}/publish").status_code, 403)
         self.assertEqual(ana.get(f"/comments/{comment_id}/edit").status_code, 403)
         self.assertEqual(ana.post(f"/comments/{comment_id}/delete").status_code, 302)
         self.assertEqual(ana.post(f"/articles/{article_id}/delete").status_code, 302)

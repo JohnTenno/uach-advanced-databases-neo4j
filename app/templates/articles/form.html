@@ -33,7 +33,6 @@
         <button class="btn" type="submit" name="intent" value="draft">Guardar borrador</button>
       {% elif article.status == 'PUBLISHED' %}
         <button class="btn btn-primary" type="submit" name="intent" value="save">Guardar cambios</button>
-        <button class="btn" type="submit" name="intent" value="draft">Pasar a borrador</button>
       {% else %}
         <button class="btn btn-primary" type="submit" name="intent" value="publish">Guardar y publicar</button>
         <button class="btn" type="submit" name="intent" value="save">Guardar borrador</button>

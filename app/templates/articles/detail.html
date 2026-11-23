@@ -26,16 +26,17 @@
   {% endif %}
   <div class="article-body">{{ article.body_text }}</div>
   <div class="reader-actions">{% include "partials/like_button.html" %}
-    <a class="action" href="#comentarios"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 4h14v9H8l-4 3v-3H3z"/></svg><span data-comment-count>{{ comments | length }}</span> <span class="sr-only">{{ "comentario" if comments | length == 1 else "comentarios" }}</span></a>
+    <a class="action" href="#comentarios"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 4h14v9H8l-4 3v-3H3z"/></svg><span data-comment-count>{{ comment_total }}</span> <span class="sr-only">{{ "comentario" if comment_total == 1 else "comentarios" }}</span></a>
   </div>
   {% if current_user.can_delete(article.author_id) %}
   <div class="actions">
     {% if can_edit %}
     <a class="btn" href="{{ url_for('articles.edit', article_id=article.article_id) }}">Editar</a>
-    <form method="post" class="inline" action="{{ url_for('articles.change_status', article_id=article.article_id, intent='draft' if article.status == 'PUBLISHED' else 'publish') }}">{{ csrf_field() }}
-      <button class="btn {{ 'btn-ghost' if article.status == 'PUBLISHED' else 'btn-primary' }}" type="submit">
-        {{ 'Pasar a borrador' if article.status == 'PUBLISHED' else 'Publicar' }}</button>
+    {% if article.status == 'DRAFT' %}
+    <form method="post" class="inline" action="{{ url_for('articles.change_status', article_id=article.article_id) }}">{{ csrf_field() }}
+      <button class="btn btn-primary" type="submit">Publicar</button>
     </form>
+    {% endif %}
     {% endif %}
     {{ ui.delete_button(url_for('articles.remove', article_id=article.article_id),
          "Eliminar artículo",
@@ -47,8 +48,13 @@
 
 <section class="panel" id="comentarios">
   <p class="eyebrow">(:User)-[:POSTED]->(:Comment)-[:ON]->(:Article)</p>
-  <h2 class="section-title">Comentarios (<span data-comment-count>{{ comments | length }}</span>)</h2>
-  <ul class="comments">
+  <h2 class="section-title">Comentarios (<span data-comment-count>{{ comment_total }}</span>)</h2>
+  {% if older %}
+  <a class="comments-more" data-comments-more href="{{ url_for('articles.detail', article_id=article.article_id, comentarios='todos') }}#comentarios"
+     data-url="{{ url_for('comments.batch', article_id=article.article_id) }}" data-before="{{ comments[0].comment_id }}">
+    Ver comentarios anteriores (<span data-older>{{ older }}</span>)</a>
+  {% endif %}
+  <ul class="comments" data-url="{{ url_for('comments.batch', article_id=article.article_id) }}">
   {% for c in comments %}
     {% include "comments/_item.html" %}
   {% else %}

@@ -145,6 +145,7 @@ class ArticlesService:
         A new image replaces the old one; the old file is deleted only after the commit.
         """
         current = self.find_editable(article_id, user)
+        self._never_unpublish(current, dto.status)
         new_image = self.images.save(dto.image)
 
         def work(tx: Transaction) -> None:
@@ -168,7 +169,7 @@ class ArticlesService:
 
     def set_status(self, article_id: int, status: str, user: AuthUser) -> None:
         """Only the status (and the date when publishing); links stay as they are."""
-        self.find_editable(article_id, user)
+        self._never_unpublish(self.find_editable(article_id, user), status)
         write("""
             MATCH (a:Article {article_id: $id})
             SET a.post_date = CASE WHEN $status = 'PUBLISHED' AND a.status <> 'PUBLISHED'
@@ -215,6 +216,13 @@ class ArticlesService:
             RETURN count(*) AS done""", not_found="El artículo no existe.", id=article_id)
 
     # ---- helpers -----------------------------------------------------------
+
+    @staticmethod
+    def _never_unpublish(article: Article, status: Optional[str]) -> None:
+        """Publishing is one way: once others have liked and commented, hiding it again as a
+        draft would hide their part too. A published article can only be edited or deleted."""
+        if article.status == "PUBLISHED" and status == "DRAFT":
+            raise AppError("Un artículo publicado no puede volver a borrador; puedes editarlo o eliminarlo.")
 
     def _link(self, tx: Transaction, article_id: int, dto: SaveArticleSchema) -> None:
         self.tags.replace_links(tx, article_id, list(dto.tag_ids))

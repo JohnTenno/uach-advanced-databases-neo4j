@@ -47,7 +47,11 @@ cover is only visible to its author.
   comments, likes received) and tabs: Posts, Photos (grid of covers) and Drafts (only on your own).
   "Edit profile" changes your name, email, password (needs the current one) and photos.
 - **Articles**: one form creates and edits; tags and categories are picked in the same form and
-  saved in the same transaction. Drafts are private, even from admins.
+  saved in the same transaction. Drafts are private, even from admins. Publishing is one way: a
+  published article can be edited or deleted, never sent back to draft (it would hide other people's
+  likes and comments).
+- **Comments** open with the newest 10; "Ver comentarios anteriores" loads older batches of 10 from
+  the server (cursor = the oldest comment on screen, so nothing repeats when new ones arrive).
 - **Comments and likes** without reloading the page (optimistic UI: if the request fails the view
   goes back and a toast explains why). Likes are idempotent and serialized per user, so concurrent
   clicks can never create two `LIKED` relationships.
